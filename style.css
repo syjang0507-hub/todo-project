@@ -83,6 +83,7 @@ h1 { margin: 0; font-size: 22px; font-weight: 700; }
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
   transition: background .15s, transform .1s, box-shadow .15s;
 }
@@ -99,6 +100,8 @@ h1 { margin: 0; font-size: 22px; font-weight: 700; }
 .btn-success { background: var(--success); border-color: var(--success); box-shadow: 0 2px 8px rgba(34, 165, 101, .3); }
 .btn-success:hover { background: #1b8f56; }
 .btn-ghost { border-color: transparent; color: var(--muted); }
+.btn-danger { color: var(--danger); border-color: #f6caca; }
+.btn-danger:hover { background: var(--danger-soft); }
 
 .btn-icon {
   display: grid;
@@ -594,5 +597,6 @@ h2 .icon { color: var(--primary); }
   .cal-day { min-height: 64px; padding: 2px; border-radius: 6px; }
   .cal-todo { font-size: 10px; padding: 2px 3px; }
   .modal-actions { flex-wrap: wrap; }
-  .modal-actions .btn { flex: 1; }
+  /* 버튼이 많으면 2개씩 두 줄로 */
+  .modal-actions .btn { flex: 1 1 calc(50% - 4px); }
 }

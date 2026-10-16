@@ -1,5 +1,5 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getDatabase, ref, push, set, update, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { getDatabase, ref, push, set, update, remove, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
 import { firebaseConfig } from './firebase-config.js';
 
 // Firebase Realtime Database의 'todos' 경로에 할일을 저장
@@ -420,6 +420,21 @@ $('editBtn').addEventListener('click', () => {
   const todo = todos.find((t) => t.id === currentId);
   closeModal(detailModal);
   openForm(todo);
+});
+
+// 상세 모달: 삭제 (되돌릴 수 없으므로 한 번 확인)
+$('deleteBtn').addEventListener('click', async () => {
+  const todo = todos.find((t) => t.id === currentId);
+  if (!todo || !confirm(`'${todo.title}' 할일을 삭제할까요?\n삭제하면 되돌릴 수 없어요.`)) return;
+
+  closeModal(detailModal);
+  try {
+    await remove(ref(db, `todos/${todo.id}`)); // 목록은 onValue로 자동 갱신
+    toast('삭제했어요');
+  } catch (err) {
+    console.error(err);
+    toast('삭제에 실패했어요. 다시 시도해 주세요.');
+  }
 });
 
 // 상세 모달: 완료 ↔ 미완료 전환
