@@ -26,7 +26,8 @@
       <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
       <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
       <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
-      <symbol id="i-sort" viewBox="0 0 24 24"><path d="m3 16 4 4 4-4M7 20V4M21 8l-4-4-4 4M17 4v16"/></symbol>    </defs>
+      <symbol id="i-sort" viewBox="0 0 24 24"><path d="m3 16 4 4 4-4M7 20V4M21 8l-4-4-4 4M17 4v16"/></symbol>      <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.41 0l8.59-8.59a1 1 0 0 0 0-1.41z"/><path d="M7 7h.01"/></symbol>
+    </defs>
   </svg>
 
   <main class="container">
@@ -120,7 +121,11 @@
         </label>
         <label class="field">
           <span class="field-label"><svg class="icon"><use href="#i-text"/></svg>상세 내용</span>
-          <textarea id="detailInput" rows="4" placeholder="메모를 남겨보세요 (선택)"></textarea>
+          <textarea id="descriptionInput" rows="4" placeholder="메모를 남겨보세요 (선택)"></textarea>
+        </label>
+        <label class="field">
+          <span class="field-label"><svg class="icon"><use href="#i-tag"/></svg>태그</span>
+          <input type="text" id="tagInput" maxlength="20" placeholder="예: 업무, 개인, 운동 (선택)" />
         </label>
         <label class="field">
           <span class="field-label"><svg class="icon"><use href="#i-calendar"/></svg>일자</span>
@@ -157,7 +162,10 @@
         <button class="btn-icon" data-close aria-label="닫기"><svg class="icon"><use href="#i-x"/></svg></button>
       </div>
       <h3 id="detailTitle" class="detail-title"></h3>
-      <p class="detail-date"><svg class="icon"><use href="#i-calendar"/></svg><span id="detailDate"></span></p>
+      <p class="detail-date">
+        <svg class="icon"><use href="#i-calendar"/></svg><span id="detailDate"></span>
+        <span id="detailTag" class="tag user-tag" hidden></span>
+      </p>
       <div class="detail-text-wrap">
         <svg class="icon"><use href="#i-text"/></svg>
         <p id="detailText" class="detail-text"></p>
@@ -172,6 +180,6 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

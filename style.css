@@ -244,6 +244,8 @@ h2 .icon { color: var(--primary); }
 }
 .tag.overdue { background: var(--danger-soft); color: var(--danger); }
 .tag.today { background: var(--primary-soft); color: var(--primary); }
+.tag.user-tag { background: #f3eefe; color: #7c4dda; }
+.tag[hidden] { display: none; }
 
 .chevron { color: #c4c8d4; width: 16px; height: 16px; }
 

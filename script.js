@@ -1,5 +1,12 @@
-// 할일은 메모리에만 보관 (새로고침하면 초기화)
-let todos = [];
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getDatabase, ref, push, set, update, onValue } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+import { firebaseConfig } from './firebase-config.js';
+
+// Firebase Realtime Database의 'todos' 경로에 할일을 저장
+const db = getDatabase(initializeApp(firebaseConfig));
+const todosRef = ref(db, 'todos');
+
+let todos = []; // Firebase에서 받아온 할일 목록
 let currentId = null; // 상세 모달에서 보고 있는 할일
 let editingId = null; // 편집 중인 할일 (null이면 새로 추가)
 let view = 'list'; // 'list' | 'calendar'
@@ -78,7 +85,13 @@ function createItem(todo) {
   } else if (todo.date === today) {
     meta.insertAdjacentHTML('beforeend', '<span class="tag today">오늘</span>');
   }
-  if (todo.detail) {
+  if (todo.tag) {
+    const tag = document.createElement('span');
+    tag.className = 'tag user-tag';
+    tag.textContent = `#${todo.tag}`;
+    meta.appendChild(tag);
+  }
+  if (todo.description) {
     meta.insertAdjacentHTML('beforeend', `<span class="meta-item" title="상세 내용 있음">${icon('text')}</span>`);
   }
 
@@ -106,7 +119,7 @@ function render() {
   const today = todayStr();
   // 날짜순(가까운 날짜가 위), 같은 날짜 안에서는 미완료 먼저
   const sorted = [...todos].sort((a, b) =>
-    a.date.localeCompare(b.date) || a.done - b.done || a.createdAt - b.createdAt
+    a.date.localeCompare(b.date) || a.done - b.done || byCreated(a, b)
   );
   const todayItems = sorted.filter((t) => t.date === today);
   const doneCount = todayItems.filter((t) => t.done).length;
@@ -156,15 +169,20 @@ function render() {
   if (!dayModal.classList.contains('hidden')) renderDay();
 }
 
+// 등록 순서 비교: Firebase push 키는 생성 시각 순으로 정렬되므로 키로 비교
+function byCreated(a, b) {
+  return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
 // 목록 정렬
 // - date:   날짜순 (가까운 날짜가 위, 같은 날은 미완료 먼저)
 // - done:   완료순 (완료한 할일이 위, 그 안에서는 날짜순)
 // - recent: 최신등록순 (최근에 등록한 할일이 위)
 function sortList(items) {
-  const byDate = (a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt;
+  const byDate = (a, b) => a.date.localeCompare(b.date) || byCreated(a, b);
   const compare = {
-    date: (a, b) => a.date.localeCompare(b.date) || a.done - b.done || a.createdAt - b.createdAt,
-    recent: (a, b) => b.createdAt - a.createdAt,
+    date: (a, b) => a.date.localeCompare(b.date) || a.done - b.done || byCreated(a, b),
+    recent: (a, b) => byCreated(b, a),
     done: (a, b) => b.done - a.done || byDate(a, b),
   }[sortBy];
   return [...items].sort(compare);
@@ -259,7 +277,8 @@ function openForm(todo, date = '') {
   returnToDay = null;
   $('formTitle').textContent = todo ? '할일 편집' : '새로운 할일';
   $('titleInput').value = todo ? todo.title : '';
-  $('detailInput').value = todo ? todo.detail : '';
+  $('descriptionInput').value = todo ? todo.description : '';
+  $('tagInput').value = todo ? todo.tag : '';
   $('dateInput').value = todo ? todo.date : date;
   openModal(formModal);
   $('titleInput').focus();
@@ -274,7 +293,7 @@ function openDay(date) {
 function renderDay() {
   const items = todos
     .filter((t) => t.date === dayDate)
-    .sort((a, b) => a.done - b.done || a.createdAt - b.createdAt);
+    .sort((a, b) => a.done - b.done || byCreated(a, b));
   const doneCount = items.filter((t) => t.done).length;
 
   $('dayTitle').textContent = formatDate(dayDate, true);
@@ -299,8 +318,10 @@ function openDetail(id) {
 
   $('detailTitle').textContent = todo.title;
   $('detailDate').textContent = formatDate(todo.date, true);
-  $('detailText').textContent = todo.detail || '작성된 상세 내용이 없어요.';
-  $('detailText').classList.toggle('placeholder', !todo.detail);
+  $('detailText').textContent = todo.description || '작성된 상세 내용이 없어요.';
+  $('detailText').classList.toggle('placeholder', !todo.description);
+  $('detailTag').textContent = todo.tag ? `#${todo.tag}` : '';
+  $('detailTag').hidden = !todo.tag;
 
   const status = $('detailStatus');
   status.innerHTML = todo.done ? `${icon('check')}완료` : '진행 중';
@@ -317,28 +338,36 @@ function toggleDone(id) {
   todo.done = !todo.done;
   render();
   toast(todo.done ? '✓ 완료했어요!' : '미완료로 되돌렸어요');
+  update(ref(db, `todos/${id}`), { done: todo.done })
+    .catch(() => toast('저장에 실패했어요. 다시 시도해 주세요.'));
 }
 
 // ---------- 이벤트 ----------
 $('addBtn').addEventListener('click', () => openForm(null));
 
-$('todoForm').addEventListener('submit', (e) => {
+$('todoForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const title = $('titleInput').value.trim();
-  const detail = $('detailInput').value.trim();
+  const description = $('descriptionInput').value.trim();
+  const tag = $('tagInput').value.trim().replace(/^#/, '');
   const date = $('dateInput').value;
   if (!title || !date) return;
 
-  if (editingId) {
-    const todo = todos.find((t) => t.id === editingId);
-    Object.assign(todo, { title, detail, date });
-  } else {
-    todos.push({
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      title, detail, date,
-      done: false,
-      createdAt: Date.now(),
-    });
+  const submitBtn = $('todoForm').querySelector('[type="submit"]');
+  submitBtn.disabled = true;
+  try {
+    if (editingId) {
+      await update(ref(db, `todos/${editingId}`), { title, description, tag, date });
+    } else {
+      // 새 할일을 Firebase에 저장 (목록은 onValue로 자동 갱신)
+      await set(push(todosRef), { title, description, tag, date });
+    }
+  } catch (err) {
+    console.error(err);
+    toast('저장에 실패했어요. 다시 시도해 주세요.');
+    return;
+  } finally {
+    submitBtn.disabled = false;
   }
   render();
   closeModal(formModal);
@@ -411,3 +440,18 @@ document.addEventListener('keydown', (e) => {
 });
 
 render();
+
+// Firebase의 할일 목록을 실시간으로 받아와 화면에 반영
+onValue(
+  todosRef,
+  (snapshot) => {
+    const data = snapshot.val() || {};
+    todos = Object.entries(data).map(([id, t]) => ({ id, description: '', tag: '', done: false, ...t }));
+    render();
+    if (!detailModal.classList.contains('hidden') && currentId) openDetail(currentId);
+  },
+  (err) => {
+    console.error(err);
+    toast('할일을 불러오지 못했어요.');
+  }
+);
